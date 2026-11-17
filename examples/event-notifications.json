@@ -1,0 +1,17 @@
+{
+  "bucketId": "<raw-bucket-id>",
+  "eventNotificationRules": [
+    {
+      "name": "ingest-on-raw-split",
+      "eventTypes": ["b2:ObjectCreated:Upload", "b2:ObjectCreated:MultipartUpload", "b2:ObjectCreated:Copy"],
+      "objectNamePrefix": "raw/",
+      "isEnabled": true,
+      "maxEventsPerBatch": 1,
+      "targetConfiguration": {
+        "targetType": "webhook",
+        "url": "https://hooks.example.com/b2/ingest",
+        "hmacSha256SigningSecret": "<32-char-alphanumeric-secret>"
+      }
+    }
+  ]
+}

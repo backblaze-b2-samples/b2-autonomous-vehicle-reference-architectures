@@ -1,0 +1,4 @@
+[
+  {"fileNamePrefix": "checkpoints/", "daysFromUploadingToHiding": 30, "daysFromHidingToDeleting": 7, "daysFromStartingToCancelingUnfinishedLargeFiles": 7},
+  {"fileNamePrefix": "sim/episodes/", "daysFromUploadingToHiding": 60, "daysFromHidingToDeleting": 7, "daysFromStartingToCancelingUnfinishedLargeFiles": 7}
+]

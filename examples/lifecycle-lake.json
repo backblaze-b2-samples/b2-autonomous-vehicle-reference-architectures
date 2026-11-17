@@ -1,0 +1,4 @@
+[
+  {"fileNamePrefix": "extracted/", "daysFromUploadingToHiding": null, "daysFromHidingToDeleting": 30, "daysFromStartingToCancelingUnfinishedLargeFiles": 7},
+  {"fileNamePrefix": "warehouse/", "daysFromUploadingToHiding": null, "daysFromHidingToDeleting": 7, "daysFromStartingToCancelingUnfinishedLargeFiles": 7}
+]

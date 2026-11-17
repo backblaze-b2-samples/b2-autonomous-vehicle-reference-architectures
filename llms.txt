@@ -1,0 +1,93 @@
+# B2 Reference Architectures for Autonomous Vehicles
+
+> Reference architectures, third-party integrations, and B2 sample applications for drive-log offload, sensor lakes and scenario mining, multi-sensor labeling, perception training data and checkpoints, and re-simulation with Backblaze B2.
+
+Canonical Backblaze product documentation: https://www.backblaze.com/docs/cloud-storage-ai-machine-learning. Use this index to select an architecture, integration configuration, or sample application.
+
+## Start here
+
+- [Autonomous vehicle summary](docs/autonomous-vehicles.md): Concise workload, B2 fit, capabilities, and boundaries.
+- [Architecture index](docs/architecture-index.md): Human-readable index generated from the catalog.
+- [Machine-readable catalog](catalog/architectures.yaml): Audiences, workflows, capabilities, integrations, security, and compliance.
+- [Full text](llms-full.txt): Summary and every architecture in one file.
+
+## Architectures
+
+- [Offload drive logs from vehicles and depots into a versioned raw zone](architectures/drive-log-offload-ingest/architecture.md): Upload closed rosbag2/MCAP log splits from vehicles, depot ingest stations, or shipped drives into a versioned B2 raw zone, verify each split before deleting the local copy, send only trigger-flagged event windows over the air, and start downstream extraction from object-created events.
+- [Decode drive logs into a queryable sensor lake and mine long-tail scenarios](architectures/sensor-lake-scenario-mining/architecture.md): Extract raw logs into per-topic Parquet/Iceberg tables and frame blobs on B2, query them in place with Spark, Trino, or DuckDB, find rare scenarios with embedding search over keyframes, and freeze results as versioned scenario-set manifests.
+- [Anonymize, pre-label, and annotate camera and LiDAR frames, then publish versioned label sets](architectures/multisensor-labeling/architecture.md): Blur faces and license plates in selected camera frames, run model-assisted 2D and 3D pre-labeling, have humans refine labels in tools that read media from B2 directly or through presigned URLs, and write versioned label releases back to B2.
+- [Version perception datasets, stream them to training, and track checkpoints](architectures/perception-training-data-checkpoints/architecture.md): Freeze labeled scenarios into immutable dataset versions (manifests plus shards) on B2, pin them with lakeFS or DVC, stream shards directly into training, and persist Ray Train checkpoints and MLflow run artifacts to B2.
+- [Re-simulate real drives and synthetic scenarios against each stack build and keep comparable KPIs](architectures/simulation-resim-evaluation/architecture.md): Store scenario definitions and a frozen regression suite on B2, replay real log splits to re-sim workers from presigned URLs, write simulator episodes back to B2, and keep per-build KPI results immutable and comparable across releases.
+
+## Third-party integrations
+
+- [rclone](https://rclone.org/b2/): Built-in Backblaze B2 option. Native Backblaze B2 backend (type = b2) with a write-only key scoped to raw/; the S3 backend with the B2 endpoint also works ([setup guide](https://www.backblaze.com/docs/cloud-storage-integrate-rclone-with-backblaze-b2)). Architectures: architectures/drive-log-offload-ingest/architecture.md
+- [s5cmd](https://github.com/peak/s5cmd): S3 sync tool. Copy closed splits from local disk with --endpoint-url (or S3_ENDPOINT_URL) set to https://s3.<region>.backblazeb2.com and the depot's write-only key; size --numworkers, cp --concurrency, and --part-size to the depot uplink ([setup guide](https://github.com/peak/s5cmd#readme)). Architectures: architectures/drive-log-offload-ingest/architecture.md
+- [Foxglove Edge Site (self-hosted)](https://docs.foxglove.dev/docs/data/edge-sites/installation): S3 custom endpoint. recordingStorage.provider=s3_compatible with recordingStorage.s3CompatibleServiceUrl set to the B2 S3 endpoint and an HMAC key pair in the recording-storage-credentials secret; set recordingStorage.s3CompatibleServiceRegion to the bucket region. Architectures: architectures/drive-log-offload-ingest/architecture.md
+- [Apache Spark (Hadoop S3A)](https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/index.html): S3 custom endpoint. fs.s3a.endpoint=https://s3.<region>.backblazeb2.com with fs.s3a.endpoint.region and fs.s3a.path.style.access=true, plus per-bucket endpoint and credential overrides for the raw and lake buckets ([setup guide](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/third_party_stores.html)). Architectures: architectures/sensor-lake-scenario-mining/architecture.md
+- [Trino](https://trino.io/): S3 custom endpoint. Native S3 file system (fs.s3.enabled=true) with s3.endpoint set to B2, s3.region set to the bucket region, and s3.path-style-access=true in each Iceberg, Hive, or Delta Lake catalog ([setup guide](https://trino.io/docs/current/object-storage/file-system-s3.html)). Architectures: architectures/sensor-lake-scenario-mining/architecture.md
+- [DuckDB (httpfs)](https://duckdb.org/docs/current/core_extensions/httpfs/s3api.html): S3 custom endpoint. S3 secret with ENDPOINT set to the B2 host name (s3.<region>.backblazeb2.com, no scheme), REGION, URL_STYLE 'path', and a read-only lake key. Architectures: architectures/sensor-lake-scenario-mining/architecture.md
+- [Apache Iceberg (PyIceberg)](https://py.iceberg.apache.org/configuration/): S3 custom endpoint. FileIO s3.endpoint set to the B2 endpoint and s3.region to the bucket region; run the SQL or REST catalog separately. Architectures: architectures/sensor-lake-scenario-mining/architecture.md
+- [LanceDB / Lance](https://lancedb.com/): S3 custom endpoint. Use the pinned LanceDB 0.20.0 / pylance 0.23.2 connection profile in examples/lancedb.md, with the B2 endpoint, region and scoped credentials; serialize all table mutations through one writer service ([setup guide](https://github.com/lance-format/lance/blob/v0.23.2/rust/lance-table/src/io/commit.rs)). Architectures: architectures/sensor-lake-scenario-mining/architecture.md
+- [CVAT](https://docs.cvat.ai/docs/workspace/attach-cloud-storage/): S3 custom endpoint. Attach cloud storage with the Amazon S3 provider, the required Endpoint URL set to the B2 endpoint, and a read-only key scoped to anonymized/ ([setup guide](https://www.backblaze.com/docs/cloud-storage-connect-backblaze-b2-cloud-storage-to-cvat)). Architectures: architectures/multisensor-labeling/architecture.md
+- [Label Studio](https://labelstud.io/guide/storage_s3): S3 custom endpoint. Amazon S3 source and target storage with the S3 Endpoint field set to the B2 endpoint; a read-only key on anonymized/ for source and a separate writer on labels/ for target. Architectures: architectures/multisensor-labeling/architecture.md
+- [Segments.ai](https://docs.segments.ai/how-to-integrate/import-data): Presigned URLs. Customer-secured URLs; your service signs B2 GET URLs with a read-only anonymized/ key and registers them on samples, refreshing open samples before the 7-day SigV4 maximum. Architectures: architectures/multisensor-labeling/architecture.md
+- [Encord](https://docs.encord.com/platform-documentation/General/annotate-data-integrations/annotate-direct-access-integration): Presigned URLs. Direct Access integration; register files with a JSON whose objectUrl values are presigned B2 GET URLs signed by your service, add bucket CORS for the Encord origin, and re-sign before the 7-day SigV4 maximum. Encord's S3-compatible (MinIO) integration is the alternative when Encord may hold a read-only key and sign URLs itself. Architectures: architectures/multisensor-labeling/architecture.md
+- [FiftyOne Enterprise](https://docs.voxel51.com/enterprise/installation.html): S3 custom endpoint. MinIO credentials profile (MINIO_ENDPOINT_URL or an ini endpoint_url) set to the B2 endpoint, plus region and a read-only key; media paths use the endpoint as their prefix. Architectures: architectures/multisensor-labeling/architecture.md
+- [Ray (Train)](https://docs.ray.io/en/latest/train/user-guides/persistent-storage.html): S3 custom endpoint. Set RunConfig storage_path to an s3:// URI with endpoint_override=https://s3.<region>.backblazeb2.com, or set AWS_ENDPOINT_URL_S3 with a plain s3:// path. Architectures: architectures/perception-training-data-checkpoints/architecture.md
+- [MLflow](https://mlflow.org/docs/latest/self-hosting/architecture/artifact-store/): Built-in Backblaze B2 option. Native b2://<bucket>@<endpoint-host>/<path> artifact store, or an s3:// artifact root with MLFLOW_S3_ENDPOINT_URL set to the B2 endpoint; use proxied artifact access so only the tracking server holds the key ([setup guide](https://www.backblaze.com/docs/cloud-storage-connect-backblaze-b2-to-mlflow)). Architectures: architectures/perception-training-data-checkpoints/architecture.md, architectures/simulation-resim-evaluation/architecture.md
+- [lakeFS](https://docs.lakefs.io/reference/configuration/): S3 custom endpoint. Blockstore type s3 with blockstore.s3.endpoint set to the B2 endpoint, blockstore.s3.force_path_style=true, and the bucket region ([setup guide](https://www.backblaze.com/docs/cloud-storage-lakefs-integration-with-backblaze-b2)). Architectures: architectures/perception-training-data-checkpoints/architecture.md
+- [DVC](https://doc.dvc.org/user-guide/data-management/remote-storage/amazon-s3): S3 custom endpoint. S3 remote (dvc remote add) with endpointurl set to the B2 endpoint and credentials stored with --local. Architectures: architectures/perception-training-data-checkpoints/architecture.md
+
+## Sample applications: closest workflow matches
+
+- [Rosbag2 Cloud Offload](https://github.com/backblaze-b2-samples/rosbag2-cloud-offload): Presigned-PUT offload of closed rosbag2 splits with head_object verification before local delete, a Parquet session catalog, and a presigned-GET replay manifest.
+- [Roboflow Inference Frame Archive](https://github.com/backblaze-b2-samples/roboflow-inference-frame-archive): Edge inference that archives only flagged frames and predictions to B2 with Parquet roll-ups.
+- [CLIP Video Scene Search](https://github.com/backblaze-b2-samples/clip-video-scene-search): PySceneDetect segmentation and OpenCLIP text/image scene search over a FAISS index stored on B2.
+- [YOLO Drone and Dashcam Footage Detection](https://github.com/backblaze-b2-samples/yolo-drone-footage-detection): Multipart upload of dashcam or drone video, YOLO detection on keyframes, and GPS-correlated GeoJSON detections on B2.
+- [SAM 2 Mask Dataset Builder](https://github.com/backblaze-b2-samples/sam2-mask-dataset-builder): SAM 2 mask propagation across video, written to B2 as versioned COCO RLE segmentation datasets.
+- [ByteTrack Dataset Builder](https://github.com/backblaze-b2-samples/bytetrack-dataset-builder): Versioned MOT tracking datasets built from raw video on B2.
+- [YOLO11 Batch Detection Pipeline](https://github.com/backblaze-b2-samples/yolo11-batch-detection-pipeline): Batch 2D detection and segmentation over B2 image and video libraries producing COCO JSON pre-labels and crops.
+
+## Sample applications: operational building blocks
+
+- [B2 Event Broker](https://github.com/backblaze-b2-samples/b2-event-broker): Verifies and fans out signed B2 Event Notifications to subscribers.
+- [b2listen](https://github.com/backblaze-b2-samples/b2listen): Forwards B2 Event Notifications to local services during development (not listed in the Labs feed).
+- [DuckDB Query In Place](https://github.com/backblaze-b2-samples/duckdb-query-in-place): SQL over Parquet, CSV, and JSON in B2 through DuckDB httpfs with a custom endpoint.
+- [Iceberg Feature Store](https://github.com/backblaze-b2-samples/iceberg-feature-store): PyIceberg tables on B2 with a local SQL catalog, schema evolution, snapshot rollback, and DuckDB time travel.
+- [Lance Multimodal Search](https://github.com/backblaze-b2-samples/lance-multimodal-search): A LanceDB vector table and ANN index stored directly on B2 next to the media.
+- [WebDataset Streaming PyTorch Training](https://github.com/backblaze-b2-samples/webdataset-streaming-pytorch-training): Tar shards streamed from B2 into PyTorch with worker and node shard splits and no local staging.
+- [lakeFS on B2 Quickstart](https://github.com/backblaze-b2-samples/lakefs-on-b2-quickstart): lakeFS branch, commit, and merge over a B2 blockstore (public repo, not listed in the Labs feed).
+- [fastdup Dataset Cleaning](https://github.com/backblaze-b2-samples/fastdup-dataset-cleaning): Duplicate, outlier, and broken-frame detection on B2 with quarantine instead of deletion.
+
+## Sample applications: domain-specific candidates
+
+- [nuScenes Sensor Data Lake](https://github.com/backblaze-b2-samples/nuscenes-sensor-data-lake): nuScenes-format camera, LiDAR, and radar blobs on B2 indexed with the devkit and served as presigned per-keyframe training manifests.
+- [MMDetection3D LiDAR Dataset](https://github.com/backblaze-b2-samples/mmdetection3d-lidar-dataset): KITTI-style LiDAR turned into 3D detection datasets with pre-labels, manifests, and checkpoints on B2.
+- [KISS-ICP LiDAR Archive](https://github.com/backblaze-b2-samples/kiss-icp-lidar-archive): KISS-ICP LiDAR odometry and incremental mapping with raw scans, poses, .ply map snapshots, and trajectories archived per session on B2.
+- [CARLA Sensor Data Lake](https://github.com/backblaze-b2-samples/carla-sensor-data-lake): CARLA scenario configs and per-episode sensor frames on B2 served to a PyTorch DataLoader with presigned URLs.
+
+## Schemas and configuration
+
+- [Architecture catalog schema](schemas/architecture-catalog.schema.json): JSON Schema for catalog/architectures.yaml.
+- [B2 configuration examples](examples/README.md): CORS, lifecycle, Object Lock, event notifications, encryption, and scoped keys.
+- [Related B2 sample applications](docs/related-b2-samples.md): Sample-to-architecture mapping and selection guidance.
+
+## Official product documentation
+
+- [Backblaze AI and machine learning](https://www.backblaze.com/docs/cloud-storage-ai-machine-learning): Canonical B2 documentation hub.
+- [Backblaze B2 documentation](https://www.backblaze.com/docs/cloud-storage): Current product behavior and setup.
+- [Backblaze B2 pricing](https://www.backblaze.com/cloud-storage/pricing): Current pricing and egress terms.
+
+## Other B2 reference architecture categories
+
+- [AI Data Providers](https://github.com/backblaze-b2-samples/b2-ai-data-provider-reference-architectures)
+- [Generative Video](https://github.com/backblaze-b2-samples/b2-gen-video-reference-architectures)
+- [Image Generation](https://github.com/backblaze-b2-samples/b2-image-generation-reference-architectures)
+- [Robotics](https://github.com/backblaze-b2-samples/b2-robotics-reference-architectures)
+- [Commercial Drones](https://github.com/backblaze-b2-samples/b2-commercial-drone-reference-architectures)
+
+## Optional
+
+- [Repository agent guide](AGENTS.md): Source hierarchy, generation commands, and operational invariants.
+- [Portable agent skill](skill/SKILL.md): Self-contained guidance for B2 autonomous vehicle data architecture work.
