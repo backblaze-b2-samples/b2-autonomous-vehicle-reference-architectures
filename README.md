@@ -2,7 +2,9 @@
 
 How autonomous vehicle teams use Backblaze B2 across drive-log offload, sensor lakes and scenario mining, multi-sensor labeling, perception training data and checkpoints, and re-simulation. Each architecture documents the data flow, B2 zones and security boundaries, and links out to the third-party integrations and B2 sample applications that implement it.
 
-Start with the [architecture index](docs/architecture-index.md) or the [agent-readable summary](docs/autonomous-vehicles.md). AI agents: see [For AI agents](#for-ai-agents). Current B2 product behavior is documented at [backblaze.com/docs](https://www.backblaze.com/docs/cloud-storage).
+Learn more about [Backblaze B2 for AI and machine learning](https://www.backblaze.com/cloud-storage/industries/ai-ml).
+
+Start with the [architecture index](docs/architecture-index.md) or the [agent-readable summary](docs/autonomous-vehicles.md). Current B2 product behavior is documented at [backblaze.com/docs](https://www.backblaze.com/docs/cloud-storage).
 
 ## Where does Backblaze B2 fit for autonomous vehicles?
 
@@ -94,17 +96,6 @@ See the [full sample cross-reference](docs/related-b2-samples.md) for selection 
 | Bulk movement | Fireball | Offload | Seeds historic backfills. Check current capacity on the [Fireball page](https://www.backblaze.com/cloud-storage/features/fireball-data-migration) |
 | Delivery | Included egress, compute partners, presigned URLs | Training, re-sim, labeling | GPU clouds read B2 in place. Cloud Replication is bucket-to-bucket DR and is not used for delivery |
 | Performance | Standard B2, [Overdrive](https://www.backblaze.com/cloud-storage/b2-overdrive), local NVMe cache | Training, lake, re-sim | Standard plus NVMe by default. Consider Overdrive only when measured sustained read throughput is the bottleneck |
-
-## For AI agents
-
-| Resource | Use it for |
-|---|---|
-| [llms.txt](llms.txt) | Curated index of architectures, integrations, samples, and official docs |
-| [llms-full.txt](llms-full.txt) | The summary and every architecture in one file |
-| [catalog/architectures.yaml](catalog/architectures.yaml) | Source of truth for architectures, integrations (with connection configuration), and samples; validated by [JSON Schema](schemas/architecture-catalog.schema.json) |
-| [AGENTS.md](AGENTS.md) | Source hierarchy, generated files, validation commands, and operational invariants |
-| [skill/SKILL.md](skill/SKILL.md) | Portable agent skill for B2 autonomous vehicle data architecture work |
-| [examples/README.md](examples/README.md) | Lifecycle, CORS, Object Lock, Event Notification, encryption, and scoped-key templates |
 
 <!-- catalog:related:start -->
 Other B2 reference architecture categories: [AI Data Providers](https://github.com/backblaze-b2-samples/b2-ai-data-provider-reference-architectures), [Generative Video](https://github.com/backblaze-b2-samples/b2-gen-video-reference-architectures), [Image Generation](https://github.com/backblaze-b2-samples/b2-image-generation-reference-architectures), [Robotics](https://github.com/backblaze-b2-samples/b2-robotics-reference-architectures), [Commercial Drones](https://github.com/backblaze-b2-samples/b2-commercial-drone-reference-architectures).
